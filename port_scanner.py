@@ -14,17 +14,24 @@ def get_open_ports(target, port_range, verbose=False):
 
     for port in range(port_range[0], port_range[1] + 1):
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.settimeout(0.5)
-                if s.connect_ex((ip, port)) == 0:
-                    open_ports.append(port)
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(0.5)
+            if s.connect_ex((ip, port)) == 0:
+                open_ports.append(port)
+            s.close()
         except Exception:
             pass
 
     if not verbose:
         return open_ports
 
-    result = f"Open ports for {target} ({ip})\n"
+    try:
+        hostname = socket.gethostbyaddr(ip)[0]
+        header = f"Open ports for {hostname} ({ip})"
+    except Exception:
+        header = f"Open ports for {target}"
+
+    result = header + "\n"
     result += "PORT     SERVICE\n"
 
     for port in open_ports:
@@ -32,3 +39,4 @@ def get_open_ports(target, port_range, verbose=False):
         result += f"{str(port).ljust(9)}{service}\n"
 
     return result.rstrip()
+
