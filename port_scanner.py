@@ -15,7 +15,7 @@ def get_open_ports(target, port_range, verbose=False):
     for port in range(port_range[0], port_range[1] + 1):
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(0.5)
+            s.settimeout(1)
             if s.connect_ex((ip, port)) == 0:
                 open_ports.append(port)
             s.close()
@@ -39,4 +39,3 @@ def get_open_ports(target, port_range, verbose=False):
         result += f"{str(port).ljust(9)}{service}\n"
 
     return result.rstrip()
-
