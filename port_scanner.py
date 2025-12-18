@@ -1,49 +1,57 @@
 import socket
-import re
 from common_ports import ports_and_services
 
 
 def get_open_ports(target, port_range, verbose=False):
     open_ports = []
 
+    # Check if target is an IP address
+    is_ip = True
+    try:
+        parts = target.split('.')
+        if len(parts) == 4:
+            for part in parts:
+                int(part)
+        else:
+            is_ip = False
+    except:
+        is_ip = False
+
+    # Resolve IP
     try:
         ip = socket.gethostbyname(target)
     except socket.gaierror:
-        if any(c.isalpha() for c in target):
+        if is_ip:
+            return "Error: Invalid IP address"
+        else:
             return "Error: Invalid hostname"
-        return "Error: Invalid IP address"
 
-    # FCC workaround for IP + 443
-    if re.match(r"^\d+\.\d+\.\d+\.\d+$", target):
-        if port_range[0] <= 443 <= port_range[1]:
-            open_ports.append(443)
-
+    # Scan ports
     for port in range(port_range[0], port_range[1] + 1):
-        if port in open_ports:
-            continue
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(1)
-            if s.connect_ex((ip, port)) == 0:
-                open_ports.append(port)
+            s.settimeout(0.5)
+            result = s.connect_ex((ip, port))
             s.close()
-        except Exception:
+            if result == 0:
+                open_ports.append(port)
+        except:
             pass
 
     if not verbose:
-        return sorted(open_ports)
+        return open_ports
 
-    try:
-        hostname = socket.gethostbyaddr(ip)[0]
-        header = f"Open ports for {hostname} ({ip})"
-    except Exception:
-        header = f"Open ports for {target}"
+    # Verbose mode
+    if is_ip:
+        header = f"Open ports for {ip}"
+    else:
+        header = f"Open ports for {target} ({ip})"
 
-    result = header + "\n"
-    result += "PORT     SERVICE\n"
-
-    for port in sorted(open_ports):
+    lines = [header, "PORT     SERVICE"]
+    
+    for port in open_ports:
         service = ports_and_services.get(port, "unknown")
-        result += f"{str(port).ljust(9)}{service}\n"
+        lines.append(f"{port:<9}{service}")
 
-    return result.rstrip()
+    return "\n".join(lines)
+
